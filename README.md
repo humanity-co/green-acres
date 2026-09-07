@@ -137,6 +137,30 @@ The complete list of supported variables is in `.env.example`. The most importan
 
 Use strong, unique secrets outside local development. Payment and messaging provider credentials must remain server-side.
 
+## Production database setup
+
+Production uses separate database credentials. `DATABASE_URL` is reserved for migrations and trusted administration. The application must use `APP_DATABASE_URL` with the restricted `app_user` role; the application will refuse to start if that variable is missing.
+
+1. Apply the Drizzle migrations with the migration connection:
+
+	```bash
+	DATABASE_URL="$DATABASE_URL" bun run db:migrate
+	```
+
+2. Set `APP_DATABASE_PASSWORD` through the deployment secret manager and run the role setup command:
+
+	```bash
+	bun run db:setup-role
+	```
+
+3. Configure `APP_DATABASE_URL` with the resulting `app_user` credentials and verify the database:
+
+	```bash
+	bun run db:verify-production
+	```
+
+The verification command checks the runtime role, immutable audit-log permissions, forced RLS and all four policy operations on tenant tables, no-context isolation, and cross-society read isolation. Do not deploy unless it passes.
+
 ## Project structure
 
 ```text

@@ -10,6 +10,8 @@
     "test": "npx tsx tests/security-hardening.test.ts && npx tsx tests/phase2-verification.test.ts && npx tsx tests/remediation-verification.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:setup-role": "tsx scripts/setup_app_user.ts",
+    "db:verify-production": "tsx scripts/verify_production_db.ts",
     "db:studio": "drizzle-kit studio",
     "db:seed": "bun run src/lib/db/seed.ts"
   },

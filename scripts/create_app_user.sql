@@ -10,14 +10,13 @@
 --   2. Keep DATABASE_URL as neondb_owner (for drizzle-kit migrations only)
 -- ============================================================
 
--- Step 1: Create the application role
+-- Step 1: Create the application role without embedding a password.
 -- NOBYPASSRLS is critical — prevents this role from bypassing RLS policies.
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_user') THEN
     CREATE ROLE app_user WITH
       LOGIN
-      PASSWORD 'REPLACE_WITH_STRONG_RANDOM_PASSWORD'
       NOINHERIT
       NOCREATEDB
       NOCREATEROLE
@@ -25,6 +24,10 @@ BEGIN
   END IF;
 END
 $$;
+
+-- Set APP_DATABASE_PASSWORD through scripts/setup_app_user.ts or a secret
+-- manager before enabling application traffic. Never replace this file with a
+-- real password.
 
 -- Step 2: Grant connect on the database
 GRANT CONNECT ON DATABASE neondb TO app_user;
