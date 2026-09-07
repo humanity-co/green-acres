@@ -244,8 +244,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
       if (systemNote) {
         try {
-          const { ownerDb } = await import("@/lib/db");
-          await ownerDb.insert(ticketComments).values({
+          await tx.insert(ticketComments).values({
             ticketId: id,
             authorId: sess.userId,
             body: `[Activity] ${systemNote.trim()}`,

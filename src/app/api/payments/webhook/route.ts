@@ -49,6 +49,10 @@ export async function POST(req: Request) {
     razorpayPaymentId = payload.razorpay_payment_id || payload.payment_id || null;
   }
 
+  if (currency !== null && currency !== "INR") {
+    return NextResponse.json({ error: "Unsupported payment currency" }, { status: 400 });
+  }
+
   if (!razorpayOrderId) {
     return NextResponse.json({ error: "Missing order id" }, { status: 400 });
   }

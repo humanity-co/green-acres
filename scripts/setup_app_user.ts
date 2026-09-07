@@ -29,9 +29,13 @@ async function run() {
   `);
   console.log("Current roles:", roles.rows);
 
-  console.log("Setting known password on app_user and testing connection...");
+  const appDatabasePassword = process.env.APP_DATABASE_PASSWORD;
+  if (!appDatabasePassword) {
+    throw new Error("APP_DATABASE_PASSWORD must be provided through the environment; refusing to set a database credential from source code.");
+  }
+  console.log("Setting the configured password on app_user and testing connection...");
   await ownerDb.execute(sql`
-    ALTER ROLE app_user WITH PASSWORD 'SocietyOS_Secure_AppUser_2026!' NOBYPASSRLS;
+    ALTER ROLE app_user WITH PASSWORD ${appDatabasePassword} NOBYPASSRLS;
     GRANT CONNECT ON DATABASE neondb TO app_user;
     GRANT USAGE ON SCHEMA public TO app_user;
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;

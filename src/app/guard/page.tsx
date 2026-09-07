@@ -128,6 +128,10 @@ export default function GuardConsole() {
     if (!manualPassForm.name.trim()) return toast.error("Enter visitor name");
     if (!manualPassForm.phone.trim()) return toast.error("Enter phone number");
     if (!manualPassForm.unitId) return toast.error("Select destination unit");
+    if (!navigator.onLine) {
+      toast.error("Manual passes require an online connection and enrolled guard device");
+      return;
+    }
 
     setIsSubmittingPass(true);
     const idempotencyKey = crypto.randomUUID();
@@ -139,35 +143,8 @@ export default function GuardConsole() {
       vehicleNumber: manualPassForm.vehicleNumber.trim() || undefined,
       gateId: selectedGate || undefined,
       notes: manualPassForm.notes.trim() || undefined,
-      offlineTimestamp: new Date().toISOString(),
       idempotencyKey,
     };
-
-    if (!navigator.onLine) {
-      await queueOfflineEntry({
-        idempotencyKey,
-        entryType: "MANUAL_PASS",
-        actionType: "MANUAL_PASS",
-        payload,
-        notes: `Unit: ${unitList.find(u => u.id === manualPassForm.unitId)?.number || "Flat"} • ${manualPassForm.name}`,
-        timestamp: new Date().toISOString(),
-      });
-      const destUnit = unitList.find(u => u.id === manualPassForm.unitId);
-      const newInside: any = {
-        entry: { id: idempotencyKey, checkIn: new Date().toISOString(), isOffline: true },
-        visitor: { name: manualPassForm.name, phone: manualPassForm.phone, vehicleNumber: manualPassForm.vehicleNumber },
-        unit: { number: destUnit?.number || "General" },
-        type: "VISITOR",
-        isOfflineManual: true,
-      };
-      setInside(prev => [newInside, ...prev]);
-      await refreshPendingCount();
-      setIsSubmittingPass(false);
-      setManualPassOpen(false);
-      setManualPassForm({ name: "", phone: "", unitId: "", purpose: "Delivery / Service", vehicleNumber: "", notes: "" });
-      toast.success("Emergency Manual Pass recorded in offline queue. Access granted.");
-      return;
-    }
 
     try {
       const res = await fetch("/api/guard/manual-pass", {
@@ -185,17 +162,7 @@ export default function GuardConsole() {
         loadInside();
       }
     } catch {
-      await queueOfflineEntry({
-        idempotencyKey,
-        entryType: "MANUAL_PASS",
-        actionType: "MANUAL_PASS",
-        payload,
-        notes: `Unit: ${unitList.find(u => u.id === manualPassForm.unitId)?.number || "Flat"} • ${manualPassForm.name}`,
-        timestamp: new Date().toISOString(),
-      });
-      toast.warning("Network interrupted. Pass saved to offline queue.");
-      setManualPassOpen(false);
-      refreshPendingCount();
+      toast.error("Manual passes require an online connection and enrolled guard device");
     } finally {
       setIsSubmittingPass(false);
     }
@@ -220,7 +187,6 @@ export default function GuardConsole() {
               inviteId: item.inviteId,
               gateId: item.gateId,
               idempotencyKey: item.idempotencyKey,
-              offlineTimestamp: item.timestamp,
               isOffline: true,
             }),
           });
@@ -231,7 +197,6 @@ export default function GuardConsole() {
             body: JSON.stringify({
               entryId: item.entryId,
               idempotencyKey: item.idempotencyKey,
-              offlineTimestamp: item.timestamp,
               isOffline: true,
             }),
           });

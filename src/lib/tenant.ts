@@ -15,13 +15,12 @@ export async function getAuthorizedSocietyId(): Promise<string | null> {
   if (rawValue) {
     if (rawValue.includes(".")) {
       const [id, sig] = rawValue.split(".");
-      const secret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET || "dev-secret-32chars-long-change-me-fallback-only-dev";
+      const secret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+      if (!secret || secret.length < 32 || secret.includes("dev-secret") || secret.includes("change-this")) return null;
       const expectedSig = crypto.createHmac("sha256", secret).update(id).digest("hex");
       if (sig.length === expectedSig.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) {
         active = id;
       }
-    } else {
-      active = rawValue;
     }
   }
 

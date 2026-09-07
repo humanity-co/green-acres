@@ -92,18 +92,20 @@ export async function POST(req: Request) {
     const ext = MIME_TO_EXT[file.type] || "jpg";
     const filename = `${randomUUID()}.${ext}`;
 
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    const { societyId } = auth as { societyId: string };
+    const uploadsDir = path.join(process.cwd(), ".private", "uploads");
     await mkdir(uploadsDir, { recursive: true });
 
-    const filePath = path.join(uploadsDir, filename);
+    const privateFilename = `${societyId}_${filename}`;
+    const filePath = path.join(uploadsDir, privateFilename);
     await writeFile(filePath, buffer);
 
-    const publicUrl = `/uploads/${filename}`;
+    const privateUrl = `/api/uploads/${privateFilename}`;
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      filename,
+      url: privateUrl,
+      filename: privateFilename,
       size: file.size,
       mimeType: file.type,
     }, { status: 201 });

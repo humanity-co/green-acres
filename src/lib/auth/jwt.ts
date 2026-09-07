@@ -1,11 +1,10 @@
 import { SignJWT, jwtVerify } from "jose";
 function getSecret() {
   const s = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET;
-  if (!s || s.includes("dev-secret")) {
-    if (process.env.NODE_ENV === "production") throw new Error("Missing BETTER_AUTH_SECRET in production");
+  if (!s || s.length < 32 || s.includes("dev-secret") || s.includes("change-this")) {
+    throw new Error("A strong authentication secret is required");
   }
-  const key = s || "dev-secret-32chars-long-change-me-fallback-only-dev";
-  return new TextEncoder().encode(key);
+  return new TextEncoder().encode(s);
 }
 export async function signJwt(payload: Record<string, any>, expiresIn = "24h") {
   return await new SignJWT(payload).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime(expiresIn).sign(getSecret());

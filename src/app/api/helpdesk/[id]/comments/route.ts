@@ -71,8 +71,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         const isOwner = ticket.raisedBy === sess.userId || unitIds.includes(ticket.unitId);
         if (!isOwner) throw new Error("Forbidden");
       }
-      const { ownerDb } = await import("@/lib/db");
-      const [created] = await ownerDb.insert(ticketComments).values({ ticketId: id, authorId: sess.userId, body: parsed.data.body }).returning();
+      const [created] = await tx.insert(ticketComments).values({ ticketId: id, authorId: sess.userId, body: parsed.data.body }).returning();
 
       const recipients = new Set<string>();
       if (ticket.raisedBy !== sess.userId) {

@@ -107,7 +107,8 @@ async function runTests() {
   // Test 3: OTH-04 HMAC-Signed Active Society Cookie
   // -------------------------------------------------------------
   try {
-    const secret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET || "dev-secret-32chars-long-change-me-fallback-only-dev";
+    const secret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+    if (!secret) throw new Error("BETTER_AUTH_SECRET or NEXTAUTH_SECRET is required for this test");
     const testSocietyId = "00000000-0000-0000-0000-000000000001";
     const validSig = crypto.createHmac("sha256", secret).update(testSocietyId).digest("hex");
     const signedValue = `${testSocietyId}.${validSig}`;

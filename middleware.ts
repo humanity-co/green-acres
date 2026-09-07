@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   // Protect resident, guard, and admin pages from unauthenticated browser access
   const isAuthPage = pathname.startsWith('/auth');
   const isApiRoute = pathname.startsWith('/api');
-  const isPublicAsset = pathname.startsWith('/_next') || pathname.startsWith('/uploads') || pathname === '/favicon.ico' || pathname === '/manifest.json';
+  const isPublicAsset = pathname.startsWith('/_next') || pathname === '/favicon.ico' || pathname === '/manifest.json';
 
   // Redirect unauthenticated browser users to /auth/sign-in
   if (!sessionToken && !isAuthPage && !isApiRoute && !isPublicAsset) {

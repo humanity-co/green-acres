@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "npx tsx tests/phase2-verification.test.ts && npx tsx tests/remediation-verification.test.ts",
+    "test": "npx tsx tests/security-hardening.test.ts && npx tsx tests/phase2-verification.test.ts && npx tsx tests/remediation-verification.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",

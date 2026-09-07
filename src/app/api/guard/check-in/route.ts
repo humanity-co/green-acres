@@ -11,7 +11,6 @@ const schema = z.object({
   inviteId: z.string().uuid(),
   gateId: z.string().uuid().optional(),
   idempotencyKey: z.string().uuid().optional(),
-  offlineTimestamp: z.string().optional(),
   isOffline: z.boolean().optional(),
 });
 
@@ -22,6 +21,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    if (parsed.data.isOffline === true) {
+      return NextResponse.json({ error: "Offline check-in requires an enrolled guard device and signed authorization", code: "OFFLINE_AUTHORIZATION_REQUIRED" }, { status: 403 });
+    }
     const { societyId, sess } = auth as any;
 
     const gateId = parsed.data.gateId;
@@ -54,7 +56,7 @@ export async function POST(req: Request) {
       if (existing.some(e => !e.checkOut)) throw new Error("Already checked in");
       const [visitor] = await tx.select().from(visitors).where(eq(visitors.id, invite.visitorId));
 
-      const checkInTime = parsed.data.offlineTimestamp ? new Date(parsed.data.offlineTimestamp) : new Date();
+      const checkInTime = new Date();
 
       const [entry] = await tx.insert(visitorEntries).values({
         societyId,
@@ -65,7 +67,7 @@ export async function POST(req: Request) {
         guardId: sess.userId,
         checkIn: checkInTime,
         idempotencyKey,
-        isOffline: parsed.data.isOffline ?? false,
+        isOffline: false,
       }).returning();
       return entry;
     });

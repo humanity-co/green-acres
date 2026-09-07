@@ -8,7 +8,6 @@ import { audit } from "@/lib/audit";
 
 const schema = z.object({
   entryId: z.string().uuid(),
-  offlineTimestamp: z.string().optional(),
   idempotencyKey: z.string().uuid().optional(),
   isOffline: z.boolean().optional(),
 });
@@ -20,6 +19,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    if (parsed.data.isOffline === true) {
+      return NextResponse.json({ error: "Offline check-out requires an enrolled guard device and signed authorization", code: "OFFLINE_AUTHORIZATION_REQUIRED" }, { status: 403 });
+    }
     const { societyId, sess } = auth as any;
 
     const updated = await withTenant(societyId, sess.userId, async (tx) => {
@@ -37,10 +39,9 @@ export async function POST(req: Request) {
         throw new Error("Already checked out");
       }
 
-      const checkOutTime = parsed.data.offlineTimestamp ? new Date(parsed.data.offlineTimestamp) : new Date();
       const [upd] = await tx
         .update(visitorEntries)
-        .set({ checkOut: checkOutTime })
+        .set({ checkOut: new Date() })
         .where(and(eq(visitorEntries.id, parsed.data.entryId), eq(visitorEntries.societyId, societyId)))
         .returning();
       return upd;
@@ -55,7 +56,6 @@ export async function POST(req: Request) {
       newState: {
         ...updated,
         isOffline: parsed.data.isOffline ?? false,
-        offlineTimestamp: parsed.data.offlineTimestamp,
       },
     });
 

@@ -25,7 +25,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Not a member of this society" }, { status: 403 });
     }
 
-    const secret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET || "dev-secret-32chars-long-change-me-fallback-only-dev";
+    const secret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+    if (!secret || secret.length < 32) {
+      return NextResponse.json({ error: "Authentication is not configured" }, { status: 503 });
+    }
     const sig = crypto.createHmac("sha256", secret).update(societyId).digest("hex");
     const signedValue = `${societyId}.${sig}`;
 

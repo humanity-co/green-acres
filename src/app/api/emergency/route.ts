@@ -1,11 +1,12 @@
 import { NextResponse, after } from "next/server";
-import { emergencyAlerts, notifications, userSocietyRoles, unitMembers } from "@/lib/db/schema";
+import { emergencyAlerts, notifications, userSocietyRoles, unitMembers, units } from "@/lib/db/schema";
 import { requireAuthAndSociety } from "@/lib/api-helpers";
 import { eq, desc, and } from "drizzle-orm";
 import { z } from "zod";
 import { withTenant } from "@/lib/db/withTenant";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
+import { getUserRoles } from "@/lib/tenant";
 
 export async function GET() {
   const auth = await requireAuthAndSociety("emergency:read");
@@ -47,6 +48,22 @@ export async function POST(req: Request) {
           .from(unitMembers)
           .where(and(eq(unitMembers.userId, sess.userId), eq(unitMembers.societyId, societyId)));
         if (myMem) unitId = myMem.unitId;
+      } else {
+        const roles = await getUserRoles(sess.userId, societyId);
+        const elevated = roles.some((role) => ["SUPER_ADMIN", "SOCIETY_ADMIN", "SECURITY_MANAGER", "GUARD"].includes(role));
+        if (!elevated) {
+          const [membership] = await tx.select({ unitId: unitMembers.unitId })
+            .from(unitMembers)
+            .where(and(
+              eq(unitMembers.userId, sess.userId),
+              eq(unitMembers.unitId, unitId!),
+              eq(unitMembers.societyId, societyId),
+            ));
+          if (!membership) throw new Error("You are not a member of this unit");
+        }
+        const [unit] = await tx.select({ id: units.id }).from(units)
+          .where(and(eq(units.id, unitId), eq(units.societyId, societyId)));
+        if (!unit) throw new Error("Unit not found");
       }
 
       const [createdAlert] = await tx.insert(emergencyAlerts).values({

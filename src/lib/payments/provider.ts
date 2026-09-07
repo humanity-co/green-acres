@@ -32,7 +32,7 @@ export function getPaymentProvider(): PaymentProvider {
   const gateway = getEnv("PAYMENT_GATEWAY") || "mock";
   if (gateway === "razorpay") return razorpayProvider;
   if (gateway === "mock") return mockProvider;
-  return mockProvider;
+  throw new Error(`Unsupported payment gateway: ${gateway}`);
 }
 
 const mockProvider: PaymentProvider = {
