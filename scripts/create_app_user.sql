@@ -1,13 +1,13 @@
 -- ============================================================
--- Society OS — Restricted App User SQL Migration
--- Run as: neondb_owner in Neon Console SQL Editor
+-- Green Acres — Restricted App User SQL Migration
+-- Run as: the PostgreSQL database owner in the Supabase SQL Editor.
 -- Purpose: Create a restricted PostgreSQL role (app_user) that
 --          CANNOT bypass Row Level Security. This is the P0 fix
---          for the RLS bypass via neondb_owner connection.
+--          for the RLS bypass via the Supabase postgres owner connection.
 --
 -- AFTER running this script:
 --   1. Update .env: APP_DATABASE_URL to use app_user credentials
---   2. Keep DATABASE_URL as neondb_owner (for drizzle-kit migrations only)
+--   2. Keep DATABASE_URL as the Supabase postgres owner (for migrations only)
 -- ============================================================
 
 -- Step 1: Create the application role without embedding a password.
@@ -30,7 +30,7 @@ $$;
 -- real password.
 
 -- Step 2: Grant connect on the database
-GRANT CONNECT ON DATABASE neondb TO app_user;
+GRANT CONNECT ON DATABASE postgres TO app_user;
 
 -- Step 3: Grant schema usage
 GRANT USAGE ON SCHEMA public TO app_user;
@@ -69,8 +69,8 @@ ORDER BY table_name, privilege_type;
 -- .env update required after running this script:
 --
 -- # Migration pool - owner credentials (drizzle-kit only)
--- DATABASE_URL="postgresql://neondb_owner:...@.../neondb?sslmode=require"
+-- DATABASE_URL="postgresql://postgres:...@.../postgres?sslmode=require"
 --
 -- # Application runtime pool - restricted app_user (RLS enforced)
--- APP_DATABASE_URL="postgresql://app_user:REPLACE_WITH_STRONG_RANDOM_PASSWORD@.../neondb?sslmode=require"
+-- APP_DATABASE_URL="postgresql://app_user:REPLACE_WITH_STRONG_RANDOM_PASSWORD@.../postgres?sslmode=require"
 -- ============================================================

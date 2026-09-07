@@ -22,6 +22,8 @@ try {
 async function run() {
   const migrationUrl = process.env.DATABASE_URL;
   const appUrl = process.env.APP_DATABASE_URL;
+  const databaseName = process.env.APP_DATABASE_NAME || "postgres";
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(databaseName)) throw new Error("APP_DATABASE_NAME must be a valid PostgreSQL database name");
   if (!migrationUrl) throw new Error("DATABASE_URL is required for trusted database setup");
   if (!appUrl) throw new Error("APP_DATABASE_URL is required and must use the restricted app_user role");
   const ownerPool = new Pool({ connectionString: migrationUrl });
@@ -31,7 +33,7 @@ async function run() {
   const roles = await sql(`
     SELECT rolname, rolbypassrls, rolcanlogin 
     FROM pg_roles 
-    WHERE rolname IN ('neondb_owner', 'app_user');
+    WHERE rolname IN ('postgres', 'app_user');
   `);
   console.log("Current roles:", roles.rows.map((role) => ({ rolname: role.rolname, rolbypassrls: role.rolbypassrls, rolcanlogin: role.rolcanlogin })));
 
@@ -40,7 +42,7 @@ async function run() {
     throw new Error("APP_DATABASE_PASSWORD must be provided through the environment; refusing to set a database credential from source code.");
   }
   console.log("Setting the configured password on app_user and testing connection...");
-  const quotedPassword = await sql("SELECT quote_literal($1) AS value", [appDatabasePassword]);
+  const quotedValues = await sql("SELECT quote_literal($1) AS password, quote_ident($2) AS database", [appDatabasePassword, databaseName]);
   await sql(`
     DO $setup$
     BEGIN
@@ -50,8 +52,8 @@ async function run() {
     END
     $setup$;
     ALTER ROLE app_user WITH LOGIN NOINHERIT NOCREATEDB NOCREATEROLE NOBYPASSRLS;
-    ALTER ROLE app_user WITH PASSWORD ${quotedPassword.rows[0].value};
-    GRANT CONNECT ON DATABASE neondb TO app_user;
+    ALTER ROLE app_user WITH PASSWORD ${quotedValues.rows[0].password};
+    GRANT CONNECT ON DATABASE ${quotedValues.rows[0].database} TO app_user;
     GRANT USAGE ON SCHEMA public TO app_user;
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;

@@ -43,6 +43,48 @@
       "when": 1788429057502,
       "tag": "0005_safe_luminals",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788430000000,
+      "tag": "0006_booking_slot_concurrency",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788430000001,
+      "tag": "0007_bill_items_rls_all",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788430000002,
+      "tag": "0008_relationship_rls_mutations",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788430000003,
+      "tag": "0009_hash_existing_session_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788430000004,
+      "tag": "0010_active_entry_constraints",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788430000005,
+      "tag": "0011_force_all_tenant_rls",
+      "breakpoints": true
     }
   ]
 }

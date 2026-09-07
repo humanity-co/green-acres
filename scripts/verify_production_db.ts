@@ -1,4 +1,21 @@
 import { Pool } from "pg";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+try {
+  const envContent = readFileSync(resolve(process.cwd(), ".env"), "utf8");
+  for (const line of envContent.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith("#") && trimmed.includes("=")) {
+      const index = trimmed.indexOf("=");
+      const key = trimmed.slice(0, index).trim();
+      const value = trimmed.slice(index + 1).trim().replace(/^['"]|['"]$/g, "");
+      if (key && !process.env[key]) process.env[key] = value;
+    }
+  }
+} catch {
+  // Deployment environments provide variables directly.
+}
 
 function requireEnv(name: string) {
   const value = process.env[name];
@@ -57,15 +74,40 @@ async function run() {
     const noContext = await appPool.query("SELECT count(*)::int AS count FROM units");
     if (noContext.rows[0].count !== 0) throw new Error("Runtime role can read tenant rows without context");
 
-    const societies = await ownerPool.query("SELECT id FROM societies ORDER BY id LIMIT 2");
+    const societies = await ownerPool.query(`
+      SELECT s.id, u.id AS unit_id, u.building_id, u.floor_id
+      FROM societies s
+      JOIN units u ON u.society_id = s.id
+      ORDER BY s.id, u.id
+      LIMIT 2
+    `);
     if (societies.rows.length >= 2) {
       const client = await appPool.connect();
       try {
-        await client.query("BEGIN");
-        await client.query("SELECT set_config('app.society_id', $1, true)", [societies.rows[0].id]);
-        const crossTenant = await client.query("SELECT count(*)::int AS count FROM units WHERE society_id = $1", [societies.rows[1].id]);
-        if (crossTenant.rows[0].count !== 0) throw new Error("Runtime role can read another society");
-        await client.query("ROLLBACK");
+        for (const [source, target] of [[societies.rows[0], societies.rows[1]], [societies.rows[1], societies.rows[0]]]) {
+          await client.query("BEGIN");
+          await client.query("SELECT set_config('app.society_id', $1, true)", [source.id]);
+          const crossTenant = await client.query("SELECT count(*)::int AS count FROM units WHERE society_id = $1", [target.id]);
+          if (crossTenant.rows[0].count !== 0) throw new Error(`Runtime role can read society ${target.id} from society ${source.id}`);
+
+          await client.query("SAVEPOINT cross_tenant_insert");
+          try {
+            await client.query(
+              "INSERT INTO units (society_id, building_id, floor_id, number, type, area_sqft) VALUES ($1, $2, $3, $4, 'FLAT', 1000)",
+              [target.id, target.building_id, target.floor_id, `PROBE-${source.id.slice(0, 8)}`],
+            );
+            throw new Error(`Runtime role inserted into society ${target.id} from society ${source.id}`);
+          } catch (error) {
+            if (error instanceof Error && error.message.startsWith("Runtime role inserted")) throw error;
+            await client.query("ROLLBACK TO SAVEPOINT cross_tenant_insert");
+          }
+
+          const updated = await client.query("UPDATE units SET number = 'PROBE-UPDATE' WHERE id = $1 AND society_id = $2 RETURNING id", [target.unit_id, target.id]);
+          if (updated.rowCount !== 0) throw new Error(`Runtime role updated society ${target.id} from society ${source.id}`);
+          const deleted = await client.query("DELETE FROM units WHERE id = $1 AND society_id = $2 RETURNING id", [target.unit_id, target.id]);
+          if (deleted.rowCount !== 0) throw new Error(`Runtime role deleted from society ${target.id} from society ${source.id}`);
+          await client.query("ROLLBACK");
+        }
       } finally {
         client.release();
       }
