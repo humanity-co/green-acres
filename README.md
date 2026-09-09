@@ -183,7 +183,6 @@ package.json             Project scripts and dependencies
 - Authorization checks are performed on the server using explicit permissions.
 - Payment verification and webhook processing happen on the server.
 - Mutations write append-only audit records.
-- Secure Weblocks
 - Offline guard actions are limited to cached data and are synchronized with idempotency keys.
 
 ## Commands
