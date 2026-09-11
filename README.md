@@ -44,8 +44,6 @@ The application is built with Next.js, React, TypeScript, PostgreSQL, and Drizzl
 - Assignment, status transitions, comments, priorities, and SLA information
 - Append-only audit records for sensitive changes
 - CSV exports for administrative reports
-- Audit annually
-- 
 
 ## Technology
 
